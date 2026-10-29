@@ -56,7 +56,7 @@ const reply = (text: string): Msg => {
 
 export const AssistantChat = () => {
   const [msgs, setMsgs] = useState<Msg[]>([
-    { from: "bot", text: "Olá! Sou o assistente do NeuroConecta. Como posso ajudar sua família hoje?" },
+    { from: "bot", text: "Olá! Sou o assistente do Fulltime. Como posso ajudar sua família hoje?" },
   ]);
   const [input, setInput] = useState("");
 

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { AuthShell } from "@/components/site/auth-shell";
 import { SignupForm } from "./signup-form";
 
-export const metadata: Metadata = { title: "Cadastro · NeuroConecta" };
+export const metadata: Metadata = { title: "Cadastro · Fulltime" };
 
 const CadastroPage = () => (
   <AuthShell

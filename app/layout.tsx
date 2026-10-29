@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NeuroConecta",
+  title: "Fulltime",
   description: "Conectando famílias a profissionais especializados em neurodivergência",
 };
 

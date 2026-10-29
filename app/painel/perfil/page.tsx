@@ -44,7 +44,7 @@ const PerfilPage = () => (
           <div className="space-y-1.5">
             <Label htmlFor="slug">Endereço do perfil</Label>
             <div className="flex items-center rounded-md border border-input pl-2.5 text-sm text-muted-foreground">
-              neuroconecta.com.br/p/
+              fulltime.com.br/p/
               <input id="slug" defaultValue={pro.slug} className="h-9 flex-1 bg-transparent px-1 text-foreground outline-none" />
             </div>
             <p className="text-xs text-muted-foreground">Pode ser alterado 1 vez a cada 30 dias.</p>
@@ -95,7 +95,7 @@ const PerfilPage = () => (
       </PanelCard>
 
       <PanelCard title="Mensagem automática do WhatsApp" description="Texto que já vem escrito quando a família clica no botão">
-        <Textarea rows={2} defaultValue="Olá, Ana! Vi seu perfil no NeuroConecta e gostaria de mais informações." />
+        <Textarea rows={2} defaultValue="Olá, Ana! Vi seu perfil no Fulltime e gostaria de mais informações." />
       </PanelCard>
     </div>
     <SaveBar />

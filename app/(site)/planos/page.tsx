@@ -5,7 +5,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { plans } from "@/lib/mock/catalog";
 
-export const metadata: Metadata = { title: "Planos · NeuroConecta" };
+export const metadata: Metadata = { title: "Planos · Fulltime" };
 
 const faq = [
   ["Tem renovação automática?", "Não. Cada compra vale pelo período escolhido. Avisamos 7 dias e 1 dia antes de vencer."],

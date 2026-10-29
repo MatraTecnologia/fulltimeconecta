@@ -6,7 +6,7 @@ import type { Professional } from "@/lib/mock/professionals";
 import { Chip, PlanBadge, ProAvatar, VacancyBadge, VerifiedBadge } from "./pro-badges";
 
 export const whatsappUrl = (pro: Professional) =>
-  `https://wa.me/${pro.whatsapp}?text=${encodeURIComponent(`Olá, ${pro.name.split(" ")[0]}! Vi seu perfil no NeuroConecta e gostaria de mais informações.`)}`;
+  `https://wa.me/${pro.whatsapp}?text=${encodeURIComponent(`Olá, ${pro.name.split(" ")[0]}! Vi seu perfil no Fulltime e gostaria de mais informações.`)}`;
 
 export const ProfessionalCard = ({ pro }: { pro: Professional }) => (
   <article

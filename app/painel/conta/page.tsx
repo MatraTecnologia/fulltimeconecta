@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { PanelCard, PanelHeader } from "@/components/panel/panel-ui";
 
-const notifications = ["Nova solicitação de contato", "Nova avaliação", "Plano perto de vencer", "Novidades do NeuroConecta"];
+const notifications = ["Nova solicitação de contato", "Nova avaliação", "Plano perto de vencer", "Novidades do Fulltime"];
 
 const ContaPage = () => (
   <>

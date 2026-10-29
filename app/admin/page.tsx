@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ModerationActions } from "./moderation-actions";
 import { reports, verificationQueue } from "@/lib/mock/panel";
 
-export const metadata: Metadata = { title: "Moderação · NeuroConecta" };
+export const metadata: Metadata = { title: "Moderação · Fulltime" };
 
 const AdminPage = () => (
   <>

@@ -16,7 +16,7 @@ export const generateStaticParams = () => professionals.map((p) => ({ slug: p.sl
 
 export const generateMetadata = async ({ params }: PageProps<"/p/[slug]">): Promise<Metadata> => {
   const pro = findProfessional((await params).slug);
-  return { title: pro ? `${pro.name} · ${pro.specialty} em ${pro.city} · NeuroConecta` : "Perfil · NeuroConecta" };
+  return { title: pro ? `${pro.name} · ${pro.specialty} em ${pro.city} · Fulltime` : "Perfil · Fulltime" };
 };
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
@@ -216,7 +216,7 @@ const ProfilePage = async ({ params }: PageProps<"/p/[slug]">) => {
           </div>
 
           <p className="text-xs text-muted-foreground">
-            O NeuroConecta aproxima famílias e profissionais. Confirme valores e condições diretamente antes de contratar.
+            O Fulltime aproxima famílias e profissionais. Confirme valores e condições diretamente antes de contratar.
           </p>
           <button className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive">
             <Flag className="size-3.5" /> Denunciar perfil

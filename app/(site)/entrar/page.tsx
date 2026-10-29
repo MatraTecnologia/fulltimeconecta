@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AuthShell } from "@/components/site/auth-shell";
 
-export const metadata: Metadata = { title: "Entrar · NeuroConecta" };
+export const metadata: Metadata = { title: "Entrar · Fulltime" };
 
 const EntrarPage = () => (
   <AuthShell

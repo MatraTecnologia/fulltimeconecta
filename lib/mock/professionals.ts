@@ -221,7 +221,7 @@ const base: Omit<Professional, "social" | "videos">[] = [
       { title: "Psicologia", institution: "USP", year: 2014, verified: true },
       { title: "Especialização em Neuropsicologia", institution: "HC-FMUSP", year: 2016, verified: true },
     ],
-    portfolio: [{ type: "Artigo", title: "Diagnóstico de TEA em mulheres adultas", detail: "Blog NeuroConecta · 2025" }],
+    portfolio: [{ type: "Artigo", title: "Diagnóstico de TEA em mulheres adultas", detail: "Blog Fulltime · 2025" }],
     whatsapp: "5511999990006",
     accent: "lilac",
   },
