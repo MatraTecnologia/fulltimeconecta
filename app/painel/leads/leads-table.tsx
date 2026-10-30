@@ -1,35 +1,61 @@
 "use client";
 
-import { useState } from "react";
-import { MessageCircle } from "lucide-react";
+import { useOptimistic, useState, useTransition } from "react";
+import { Mail, MessageCircle } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import { setLeadStatus } from "@/app/painel/_actions/leads";
+import { leadChannelLabel, leadStatusLabel } from "@/lib/labels";
 import { cn } from "@/lib/utils";
-import { leads as initial, type LeadStatus } from "@/lib/mock/panel";
 
-const statuses: LeadStatus[] = ["novo", "respondido", "convertido", "descartado"];
-const tone: Record<LeadStatus, string> = {
-  novo: "bg-brand-coral/15 text-brand-coral",
-  respondido: "bg-brand-sky/15 text-brand-sky",
-  convertido: "bg-brand-sage/20 text-[oklch(0.45_0.09_154)]",
-  descartado: "bg-muted text-muted-foreground",
+type LeadStatus = keyof typeof leadStatusLabel;
+type Lead = {
+  id: string;
+  guardian: string;
+  contact: string;
+  channel: keyof typeof leadChannelLabel;
+  personAge: string;
+  condition: string | null;
+  modality: string | null;
+  message: string;
+  date: string;
+  status: LeadStatus;
 };
 
-export const LeadsTable = () => {
-  const [rows, setRows] = useState(initial);
-  const [filter, setFilter] = useState<LeadStatus | "todos">("todos");
-  const shown = rows.filter((r) => filter === "todos" || r.status === filter);
+const statuses = Object.keys(leadStatusLabel) as LeadStatus[];
+const tone: Record<LeadStatus, string> = {
+  NOVO: "bg-brand-coral/15 text-brand-coral",
+  RESPONDIDO: "bg-brand-sky/15 text-brand-sky",
+  CONVERTIDO: "bg-brand-sage/20 text-[oklch(0.45_0.09_154)]",
+  DESCARTADO: "bg-muted text-muted-foreground",
+};
+
+const replyHref = (contact: string) => {
+  if (contact.includes("@")) return `mailto:${contact}`;
+  const digits = contact.replace(/\D/g, "");
+  return `https://wa.me/${digits.length <= 11 ? `55${digits}` : digits}`;
+};
+
+export const LeadsTable = ({ leads }: { leads: Lead[] }) => {
+  const [rows, setOptimistic] = useOptimistic(leads, (state, { id, status }: { id: string; status: LeadStatus }) =>
+    state.map((r) => (r.id === id ? { ...r, status } : r)),
+  );
+  const [, start] = useTransition();
+  const [filter, setFilter] = useState<LeadStatus | "TODOS">("TODOS");
+  const shown = rows.filter((r) => filter === "TODOS" || r.status === filter);
+
+  if (!leads.length) return <p className="rounded-2xl border bg-card p-6 text-sm text-muted-foreground">Nenhuma solicitação recebida ainda.</p>;
 
   return (
     <>
       <div className="mb-4 flex flex-wrap gap-2">
-        {(["todos", ...statuses] as const).map((s) => (
+        {(["TODOS", ...statuses] as const).map((s) => (
           <button
             key={s}
             onClick={() => setFilter(s)}
-            className={cn("rounded-full border px-3 py-1 text-sm capitalize", filter === s ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted")}
+            className={cn("rounded-full border px-3 py-1 text-sm", filter === s ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted")}
           >
-            {s} {s !== "todos" && `(${rows.filter((r) => r.status === s).length})`}
+            {s === "TODOS" ? "Todos" : leadStatusLabel[s]} {s !== "TODOS" && `(${rows.filter((r) => r.status === s).length})`}
           </button>
         ))}
       </div>
@@ -39,11 +65,10 @@ export const LeadsTable = () => {
             <div className="min-w-0 flex-1 space-y-1">
               <div className="flex flex-wrap items-center gap-2">
                 <p className="font-semibold">{l.guardian}</p>
-                <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium capitalize", tone[l.status])}>{l.status}</span>
+                <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", tone[l.status])}>{leadStatusLabel[l.status]}</span>
               </div>
               <p className="text-sm text-muted-foreground">
-                {l.channel} · {new Date(l.date).toLocaleDateString("pt-BR")} · {l.personAge}
-                {l.condition && ` · ${l.condition}`} · {l.modality}
+                {[leadChannelLabel[l.channel], new Date(l.date).toLocaleDateString("pt-BR"), l.personAge, l.condition, l.modality, l.contact].filter(Boolean).join(" · ")}
               </p>
               <p className="text-sm">{l.message}</p>
             </div>
@@ -52,17 +77,25 @@ export const LeadsTable = () => {
                 size="sm"
                 value={l.status}
                 aria-label="Status do contato"
-                onChange={(e) => setRows(rows.map((r) => (r.id === l.id ? { ...r, status: e.target.value as LeadStatus } : r)))}
+                onChange={(e) => {
+                  const status = e.target.value as LeadStatus;
+                  start(async () => {
+                    setOptimistic({ id: l.id, status });
+                    await setLeadStatus(l.id, status);
+                  });
+                }}
               >
                 {statuses.map((s) => (
                   <NativeSelectOption key={s} value={s}>
-                    {s}
+                    {leadStatusLabel[s]}
                   </NativeSelectOption>
                 ))}
               </NativeSelect>
-              <a href="https://wa.me/" target="_blank" rel="noreferrer" className={buttonVariants({ size: "sm" })}>
-                <MessageCircle /> Responder
-              </a>
+              {l.contact && (
+                <a href={replyHref(l.contact)} target="_blank" rel="noreferrer" className={buttonVariants({ size: "sm" })}>
+                  {l.contact.includes("@") ? <Mail /> : <MessageCircle />} Responder
+                </a>
+              )}
             </div>
           </div>
         ))}

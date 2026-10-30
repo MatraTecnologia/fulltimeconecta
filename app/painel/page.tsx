@@ -3,21 +3,28 @@ import { BadgeCheck, Check, Circle, Sparkles } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { PanelCard, PanelHeader, Stat } from "@/components/panel/panel-ui";
-import { leads, weeklyStats } from "@/lib/mock/panel";
-import { currentProfessional as pro } from "@/lib/mock/professionals";
+import { formatDate, leadChannelLabel, planLabel } from "@/lib/labels";
+import { db } from "@/lib/server/db";
+import { requireProfessional } from "@/lib/server/dal";
+import { delta, last30 } from "@/lib/server/stats";
 
-const checklist = [
-  { label: "Foto e bio", done: true },
-  { label: "Registro verificado", done: true },
-  { label: "Condições e abordagens", done: true },
-  { label: "Local de atendimento", done: true },
-  { label: "Vídeo de apresentação", done: false, href: "/painel/portfolio" },
-  { label: "Certificado da especialização em Linguagem", done: false, href: "/painel/verificacao" },
-];
-
-const PainelPage = () => {
-  const last4 = weeklyStats.slice(-4);
-  const sum = (k: "views" | "clicks" | "leads") => last4.reduce((a, w) => a + w[k], 0);
+const PainelPage = async () => {
+  const { professional: pro } = await requireProfessional();
+  const [stats, leads, videos, education] = await Promise.all([
+    last30(pro.id),
+    db.lead.findMany({ where: { professionalId: pro.id }, orderBy: { createdAt: "desc" }, take: 4 }),
+    db.video.count({ where: { professionalId: pro.id } }),
+    db.education.count({ where: { professionalId: pro.id } }),
+  ]);
+  const { current: c, previous: p } = stats;
+  const checklist = [
+    { label: "Foto e bio", done: Boolean(pro.avatarUrl && pro.bio.length >= 200), href: "/painel/perfil" },
+    { label: "Registro verificado", done: pro.status === "VERIFICADO", href: "/painel/verificacao" },
+    { label: "Condições e abordagens", done: pro.conditions.length > 0 && pro.approaches.length > 0, href: "/painel/atendimento" },
+    { label: "Local de atendimento", done: Boolean(pro.city), href: "/painel/atendimento" },
+    { label: "Vídeo de apresentação", done: videos > 0, href: "/painel/portfolio" },
+    { label: "Formação cadastrada", done: education > 0, href: "/painel/verificacao" },
+  ];
   const done = checklist.filter((c) => c.done).length;
   const pct = Math.round((done / checklist.length) * 100);
 
@@ -26,16 +33,20 @@ const PainelPage = () => {
       <PanelHeader title={`Olá, ${pro.name.split(" ")[0]}`} description="Resumo do seu perfil nos últimos 30 dias" />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Stat label="Visitas ao perfil" value={sum("views").toLocaleString("pt-BR")} delta="+38% vs. mês anterior" />
-        <Stat label="Cliques no WhatsApp" value={String(sum("clicks"))} delta="+42%" />
-        <Stat label="Solicitações" value={String(sum("leads"))} delta="+51%" />
-        <Stat label="Taxa de contato" value={`${((sum("clicks") / sum("views")) * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`} />
+        <Stat label="Visitas ao perfil" value={c.views.toLocaleString("pt-BR")} delta={delta(c.views, p.views)} />
+        <Stat label="Cliques no WhatsApp" value={String(c.clicks)} delta={delta(c.clicks, p.clicks)} />
+        <Stat label="Solicitações" value={String(c.leads)} delta={delta(c.leads, p.leads)} />
+        <Stat
+          label="Taxa de contato"
+          value={c.views ? `${(((c.clicks + c.leads) / c.views) * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%` : "—"}
+        />
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
         <PanelCard title="Contatos recentes" description="Responda em até 72 h para manter sua posição na busca">
+          {!leads.length && <p className="py-3 text-sm text-muted-foreground">Nenhum contato ainda. Complete o perfil para aparecer melhor na busca.</p>}
           <ul className="divide-y">
-            {leads.slice(0, 4).map((l) => (
+            {leads.map((l) => (
               <li key={l.id} className="flex items-center gap-3 py-3">
                 <div className="min-w-0 flex-1">
                   <p className="font-medium">
@@ -43,8 +54,8 @@ const PainelPage = () => {
                   </p>
                   <p className="truncate text-sm text-muted-foreground">{l.message}</p>
                 </div>
-                <span className="text-xs text-muted-foreground">{l.channel}</span>
-                {l.status === "novo" && <span className="rounded-full bg-brand-coral px-2 py-0.5 text-xs font-semibold text-white">Novo</span>}
+                <span className="text-xs text-muted-foreground">{leadChannelLabel[l.channel]}</span>
+                {l.status === "NOVO" && <span className="rounded-full bg-brand-coral px-2 py-0.5 text-xs font-semibold text-white">Novo</span>}
               </li>
             ))}
           </ul>
@@ -61,12 +72,12 @@ const PainelPage = () => {
               {checklist.map((c) => (
                 <li key={c.label} className="flex items-center gap-2">
                   {c.done ? <Check className="size-4 text-primary" /> : <Circle className="size-4 text-muted-foreground" />}
-                  {c.href ? (
+                  {c.done ? (
+                    <span className="text-muted-foreground">{c.label}</span>
+                  ) : (
                     <Link href={c.href} className="text-primary hover:underline">
                       {c.label}
                     </Link>
-                  ) : (
-                    <span className="text-muted-foreground">{c.label}</span>
                   )}
                 </li>
               ))}
@@ -75,13 +86,12 @@ const PainelPage = () => {
 
           <PanelCard title="Seu plano">
             <div className="flex items-center gap-2 text-sm">
-              <BadgeCheck className="size-4 text-primary" /> Premium anual até 02/03/2027
-            </div>
-            <div className="mt-2 flex items-center gap-2 text-sm">
-              <Sparkles className="size-4 text-brand-amber" /> Destaque ativo até 31/10/2026
+              {pro.plan === "DESTAQUE" ? <Sparkles className="size-4 text-brand-amber" /> : <BadgeCheck className="size-4 text-primary" />}
+              {planLabel[pro.plan]}
+              {pro.planUntil && ` até ${formatDate(pro.planUntil)}`}
             </div>
             <Link href="/painel/plano" className={buttonVariants({ variant: "outline", className: "mt-4 w-full" })}>
-              Renovar Destaque
+              {pro.plan === "GRATUITO" ? "Conhecer planos" : "Gerenciar plano"}
             </Link>
           </PanelCard>
         </div>

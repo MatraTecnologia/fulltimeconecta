@@ -1,6 +1,7 @@
+import Image from "next/image";
 import { BadgeCheck, Crown, GraduationCap, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Plan, Professional, Vacancy } from "@/lib/mock/professionals";
+import type { Plan, Professional, Vacancy } from "@/lib/types";
 
 const accents: Record<Professional["accent"], string> = {
   teal: "bg-brand-teal/15 text-brand-teal",
@@ -19,7 +20,16 @@ const initials = (name: string) =>
     .map((s) => s[0])
     .join("");
 
-export const ProAvatar = ({ pro, size = "md" }: { pro: Professional; size?: "md" | "lg" }) => (
+export const ProAvatar = ({ pro, size = "md" }: { pro: Pick<Professional, "name" | "accent" | "avatarUrl">; size?: "md" | "lg" }) =>
+  pro.avatarUrl ? (
+    <Image
+      src={pro.avatarUrl}
+      alt=""
+      width={size === "lg" ? 112 : 64}
+      height={size === "lg" ? 112 : 64}
+      className={cn("shrink-0 rounded-2xl object-cover", size === "lg" ? "size-28" : "size-16")}
+    />
+  ) : (
   <div
     className={cn(
       "flex shrink-0 items-center justify-center rounded-2xl font-heading font-extrabold",
@@ -30,9 +40,9 @@ export const ProAvatar = ({ pro, size = "md" }: { pro: Professional; size?: "md"
   >
     {initials(pro.name)}
   </div>
-);
+  );
 
-export const VerifiedBadge = ({ pro }: { pro: Professional }) =>
+export const VerifiedBadge = ({ pro }: { pro: Pick<Professional, "council"> }) =>
   pro.council ? (
     <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
       <BadgeCheck className="size-4" />

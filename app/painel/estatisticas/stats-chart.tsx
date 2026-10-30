@@ -2,7 +2,6 @@
 
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
-import { weeklyStats } from "@/lib/mock/panel";
 
 const config = {
   views: { label: "Visitas", color: "var(--chart-1)" },
@@ -10,9 +9,9 @@ const config = {
   leads: { label: "Solicitações", color: "var(--chart-4)" },
 } satisfies ChartConfig;
 
-export const StatsChart = () => (
+export const StatsChart = ({ data }: { data: { week: string; views: number; clicks: number; leads: number }[] }) => (
   <ChartContainer config={config} className="h-72 w-full">
-    <LineChart data={weeklyStats} margin={{ left: 0, right: 12, top: 8 }}>
+    <LineChart data={data} margin={{ left: 0, right: 12, top: 8 }}>
       <CartesianGrid vertical={false} />
       <XAxis dataKey="week" tickLine={false} axisLine={false} />
       <YAxis tickLine={false} axisLine={false} width={36} />

@@ -4,13 +4,20 @@ import { useState } from "react";
 import { Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { youtubeId } from "@/lib/youtube";
-import type { Video } from "@/lib/mock/media";
+import type { Video } from "@/lib/types";
 
 const tints = ["from-brand-teal/80 to-brand-sky/70", "from-brand-coral/80 to-brand-amber/70", "from-brand-lilac/80 to-brand-sky/70", "from-brand-sage/80 to-brand-teal/70"];
 
 export const VideoPlayer = ({ video, index = 0, large }: { video: Video; index?: number; large?: boolean }) => {
   const [playing, setPlaying] = useState(false);
-  const id = video.url ? youtubeId(video.url) : null;
+  const id = video.kind === "youtube" && video.url ? youtubeId(video.url) : null;
+
+  if (playing && video.kind === "upload" && video.url)
+    return (
+      <div className="aspect-video overflow-hidden rounded-2xl bg-black">
+        <video src={video.url} title={video.title} controls autoPlay playsInline className="size-full" />
+      </div>
+    );
 
   if (playing && id)
     return (
@@ -32,6 +39,7 @@ export const VideoPlayer = ({ video, index = 0, large }: { video: Video; index?:
       className={cn("group relative block aspect-video w-full overflow-hidden rounded-2xl bg-linear-to-br text-left text-white", tints[index % tints.length])}
       aria-label={`Assistir: ${video.title}`}
     >
+      {video.kind === "upload" && video.url && <video src={`${video.url}#t=0.5`} preload="metadata" muted className="absolute inset-0 size-full object-cover" />}
       {id && <img src={`https://i.ytimg.com/vi/${id}/hqdefault.jpg`} alt="" className="absolute inset-0 size-full object-cover" />}
       <span className="absolute inset-0 bg-linear-to-t from-black/60 via-black/10 to-transparent" />
       <span
@@ -44,13 +52,8 @@ export const VideoPlayer = ({ video, index = 0, large }: { video: Video; index?:
       </span>
       <span className="absolute right-3 bottom-3 left-3 flex items-end justify-between gap-2">
         <span className={cn("font-heading font-bold drop-shadow", large ? "text-lg" : "text-sm")}>{video.title}</span>
-        <span className="rounded bg-black/60 px-1.5 py-0.5 text-xs tabular-nums">{video.duration}</span>
+        {video.duration && <span className="rounded bg-black/60 px-1.5 py-0.5 text-xs tabular-nums">{video.duration}</span>}
       </span>
-      {playing && !id && (
-        <span className="absolute inset-0 flex items-center justify-center bg-black/70 p-4 text-center text-sm">
-          Vídeo de demonstração. Com um link real do YouTube, o vídeo toca aqui.
-        </span>
-      )}
     </button>
   );
 };

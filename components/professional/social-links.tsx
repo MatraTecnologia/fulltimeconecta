@@ -1,6 +1,6 @@
 import { Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Social } from "@/lib/mock/media";
+import type { Social } from "@/lib/types";
 import { InstagramIcon, LinkedinIcon, TiktokIcon, YoutubeIcon } from "./social-icons";
 
 const networks = [

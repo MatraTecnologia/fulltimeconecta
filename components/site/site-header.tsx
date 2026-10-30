@@ -1,13 +1,46 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { Search } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { buttonVariants } from "@/components/ui/button";
+import { getUser } from "@/lib/server/dal";
+import { SignOutButton } from "./sign-out-button";
 
 const links = [
   { href: "/buscar", label: "Buscar profissionais" },
   { href: "/assistente", label: "Assistente" },
   { href: "/planos", label: "Planos" },
 ];
+
+const Guest = () => (
+  <>
+    <Link href="/entrar" className={buttonVariants({ variant: "ghost", className: "hidden sm:inline-flex" })}>
+      Entrar
+    </Link>
+    <Link href="/cadastro" className={buttonVariants()}>
+      <span className="sm:hidden">Profissional</span>
+      <span className="hidden sm:inline">Sou profissional</span>
+    </Link>
+  </>
+);
+
+const Account = async () => {
+  const user = await getUser();
+  if (!user) return <Guest />;
+  const home = user.role === "admin" ? "/admin" : user.role === "profissional" ? "/painel" : null;
+  return (
+    <>
+      {home ? (
+        <Link href={home} className={buttonVariants()}>
+          {user.role === "admin" ? "Moderação" : "Meu painel"}
+        </Link>
+      ) : (
+        <span className="hidden text-sm text-muted-foreground sm:inline">Olá, {user.name.split(" ")[0]}</span>
+      )}
+      <SignOutButton />
+    </>
+  );
+};
 
 export const SiteHeader = () => (
   <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur">
@@ -24,13 +57,9 @@ export const SiteHeader = () => (
         <Link href="/buscar" className={buttonVariants({ variant: "ghost", size: "icon", className: "md:hidden" })} aria-label="Buscar profissionais">
           <Search />
         </Link>
-        <Link href="/entrar" className={buttonVariants({ variant: "ghost", className: "hidden sm:inline-flex" })}>
-          Entrar
-        </Link>
-        <Link href="/cadastro" className={buttonVariants()}>
-          <span className="sm:hidden">Profissional</span>
-          <span className="hidden sm:inline">Sou profissional</span>
-        </Link>
+        <Suspense fallback={<Guest />}>
+          <Account />
+        </Suspense>
       </div>
     </div>
   </header>

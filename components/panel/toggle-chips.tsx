@@ -4,10 +4,13 @@ import { useState } from "react";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export const ToggleChips = ({ options, initial }: { options: readonly string[]; initial: string[] }) => {
+export const ToggleChips = ({ name, options, initial }: { name: string; options: readonly string[]; initial: string[] }) => {
   const [sel, setSel] = useState(initial);
   return (
     <div className="flex flex-wrap gap-2">
+      {sel.map((o) => (
+        <input key={o} type="hidden" name={name} value={o} />
+      ))}
       {options.map((o) => {
         const on = sel.includes(o);
         return (

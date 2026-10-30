@@ -1,22 +1,29 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { BadgeCheck, Clock, Flag, GraduationCap, Languages, MapPin, MessageCircle, Star, Wallet } from "lucide-react";
+import { BadgeCheck, Clock, GraduationCap, Languages, MapPin, MessageCircle, Star, Wallet } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { Chip, PlanBadge, ProAvatar, VacancyBadge, VerifiedBadge } from "@/components/professional/pro-badges";
-import { whatsappUrl } from "@/components/professional/professional-card";
 import { YoutubeIcon } from "@/components/professional/social-icons";
 import { SocialLinks } from "@/components/professional/social-links";
 import { VideoPlayer } from "@/components/professional/video-player";
+import { getPublicProfile } from "@/lib/server/professionals";
 import { ContactForm } from "./contact-form";
-import { reviews } from "@/lib/mock/panel";
-import { findProfessional, professionals } from "@/lib/mock/professionals";
-
-export const generateStaticParams = () => professionals.map((p) => ({ slug: p.slug }));
+import { ReportForm } from "./report-form";
+import { ReviewCta } from "./review-cta";
+import { TrackView } from "./track-view";
 
 export const generateMetadata = async ({ params }: PageProps<"/p/[slug]">): Promise<Metadata> => {
-  const pro = findProfessional((await params).slug);
-  return { title: pro ? `${pro.name} · ${pro.specialty} em ${pro.city} · Fulltime` : "Perfil · Fulltime" };
+  const data = await getPublicProfile((await params).slug);
+  if (!data) return { title: "Perfil · Fulltime" };
+  const { pro } = data;
+  return {
+    title: `${pro.name} · ${pro.specialty}${pro.city ? ` em ${pro.city}` : ""} · Fulltime`,
+    description: pro.bio.slice(0, 160),
+    openGraph: pro.avatarUrl ? { images: [pro.avatarUrl] } : undefined,
+  };
 };
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
@@ -38,13 +45,15 @@ const ChipRow = ({ label, items }: { label: string; items: string[] }) =>
     </div>
   ) : null;
 
-const ProfilePage = async ({ params }: PageProps<"/p/[slug]">) => {
-  const pro = findProfessional((await params).slug);
-  if (!pro) notFound();
-  const showRating = pro.rating && pro.reviewsCount >= 3;
+const Profile = async ({ params }: { params: PageProps<"/p/[slug]">["params"] }) => {
+  const data = await getPublicProfile((await params).slug);
+  if (!data) notFound();
+  const { pro, reviews } = data;
+  const place = [pro.neighborhood, pro.city].filter(Boolean).join(", ");
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
+      <TrackView slug={pro.slug} />
       <Link href="/buscar" className="text-sm text-muted-foreground hover:text-foreground">
         ← Voltar para a busca
       </Link>
@@ -59,15 +68,17 @@ const ProfilePage = async ({ params }: PageProps<"/p/[slug]">) => {
           <p className="text-lg text-muted-foreground">{pro.specialty}</p>
           <VerifiedBadge pro={pro} />
           <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-muted-foreground">
-            <span className="inline-flex items-center gap-1">
-              <MapPin className="size-4" /> {pro.neighborhood}, {pro.city}
-            </span>
+            {place && (
+              <span className="inline-flex items-center gap-1">
+                <MapPin className="size-4" /> {place}
+              </span>
+            )}
             <span className="inline-flex items-center gap-1">
               <Clock className="size-4" /> Responde em ~{pro.responseHours} h
             </span>
-            {showRating && (
+            {pro.rating !== null && (
               <span className="inline-flex items-center gap-1">
-                <Star className="size-4 fill-brand-amber text-brand-amber" /> {pro.rating!.toFixed(1)} · {pro.reviewsCount} avaliações
+                <Star className="size-4 fill-brand-amber text-brand-amber" /> {pro.rating.toFixed(1)} · {pro.reviewsCount} avaliações
               </span>
             )}
           </div>
@@ -79,9 +90,11 @@ const ProfilePage = async ({ params }: PageProps<"/p/[slug]">) => {
           <div className="self-start md:self-center">
             <VacancyBadge vacancy={pro.vacancy} />
           </div>
-          <a href={whatsappUrl(pro)} target="_blank" rel="noreferrer" className={buttonVariants({ size: "lg" })}>
-            <MessageCircle /> Chamar no WhatsApp
-          </a>
+          {pro.whatsapp && (
+            <a href={`/p/${pro.slug}/whatsapp`} target="_blank" rel="noreferrer" className={buttonVariants({ size: "lg" })}>
+              <MessageCircle /> Chamar no WhatsApp
+            </a>
+          )}
           <a href="#contato" className={buttonVariants({ variant: "outline", size: "lg" })}>
             Enviar solicitação
           </a>
@@ -91,8 +104,8 @@ const ProfilePage = async ({ params }: PageProps<"/p/[slug]">) => {
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_340px]">
         <div className="space-y-6">
           <Section title="Sobre">
-            <p className="leading-relaxed">{pro.bio}</p>
-            <p className="mt-3 text-sm text-muted-foreground">{pro.years} anos de experiência</p>
+            <p className="leading-relaxed whitespace-pre-line">{pro.bio}</p>
+            {pro.years > 0 && <p className="mt-3 text-sm text-muted-foreground">{pro.years} anos de experiência</p>}
           </Section>
 
           {pro.videos.length > 0 && (
@@ -101,7 +114,7 @@ const ProfilePage = async ({ params }: PageProps<"/p/[slug]">) => {
               {pro.videos.length > 1 && (
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   {pro.videos.slice(1).map((v, i) => (
-                    <VideoPlayer key={v.title} video={v} index={i + 1} />
+                    <VideoPlayer key={v.id} video={v} index={i + 1} />
                   ))}
                 </div>
               )}
@@ -118,6 +131,19 @@ const ProfilePage = async ({ params }: PageProps<"/p/[slug]">) => {
             </Section>
           )}
 
+          {pro.photos.length > 0 && (
+            <Section title="Fotos">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {pro.photos.map((f) => (
+                  <figure key={f.id} className="relative aspect-square overflow-hidden rounded-xl bg-muted">
+                    <Image src={f.url} alt={f.caption || `Foto de ${pro.name}`} fill sizes="(min-width: 1024px) 240px, 45vw" className="object-cover" />
+                    {f.caption && <figcaption className="absolute inset-x-0 bottom-0 bg-black/55 px-2 py-1 text-xs text-white">{f.caption}</figcaption>}
+                  </figure>
+                ))}
+              </div>
+            </Section>
+          )}
+
           <Section title="Atendimento">
             <div className="grid gap-5 sm:grid-cols-2">
               <ChipRow label="Condições atendidas" items={pro.conditions} />
@@ -128,32 +154,34 @@ const ProfilePage = async ({ params }: PageProps<"/p/[slug]">) => {
             </div>
           </Section>
 
-          <Section title="Formação">
-            <ul className="space-y-3">
-              {pro.education.map((e) => (
-                <li key={e.title} className="flex items-start gap-3">
-                  <GraduationCap className="mt-0.5 size-5 text-primary" />
-                  <div className="flex-1">
-                    <p className="font-medium">{e.title}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {e.institution} · {e.year}
-                    </p>
-                  </div>
-                  {e.verified && (
-                    <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
-                      <BadgeCheck className="size-4" /> Comprovada
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </Section>
+          {pro.education.length > 0 && (
+            <Section title="Formação">
+              <ul className="space-y-3">
+                {pro.education.map((e) => (
+                  <li key={`${e.title}-${e.year}`} className="flex items-start gap-3">
+                    <GraduationCap className="mt-0.5 size-5 text-primary" />
+                    <div className="flex-1">
+                      <p className="font-medium">{e.title}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {e.institution} · {e.year}
+                      </p>
+                    </div>
+                    {e.verified && (
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
+                        <BadgeCheck className="size-4" /> Comprovada
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          )}
 
           {pro.portfolio.length > 0 && (
             <Section title="Portfólio">
               <div className="grid gap-3 sm:grid-cols-2">
                 {pro.portfolio.map((i) => (
-                  <div key={i.title} className="rounded-xl bg-muted p-4">
+                  <div key={i.id} className="rounded-xl bg-muted p-4">
                     <p className="text-xs font-semibold tracking-wide text-primary uppercase">{i.type}</p>
                     <p className="mt-1 font-medium">{i.title}</p>
                     <p className="text-sm text-muted-foreground">{i.detail}</p>
@@ -164,7 +192,7 @@ const ProfilePage = async ({ params }: PageProps<"/p/[slug]">) => {
           )}
 
           <Section title="Avaliações de famílias">
-            {showRating ? (
+            {pro.rating !== null ? (
               <ul className="space-y-5">
                 {reviews.map((r) => (
                   <li key={r.id} className="space-y-1 border-b pb-5 last:border-0 last:pb-0">
@@ -175,7 +203,7 @@ const ProfilePage = async ({ params }: PageProps<"/p/[slug]">) => {
                           <Star key={i} className={`size-3.5 ${i < r.rating ? "fill-brand-amber text-brand-amber" : "text-border"}`} />
                         ))}
                       </span>
-                      <span className="text-muted-foreground">{new Date(r.date).toLocaleDateString("pt-BR")}</span>
+                      <span className="text-muted-foreground">{new Date(r.date).toLocaleDateString("pt-BR", { timeZone: "UTC" })}</span>
                     </div>
                     <p>{r.text}</p>
                     {r.reply && <p className="ml-4 border-l-2 border-primary pl-3 text-sm text-muted-foreground">Resposta: {r.reply}</p>}
@@ -185,6 +213,9 @@ const ProfilePage = async ({ params }: PageProps<"/p/[slug]">) => {
             ) : (
               <p className="text-muted-foreground">A nota aparece a partir de 3 avaliações.</p>
             )}
+            <Suspense>
+              <ReviewCta slug={pro.slug} professionalId={pro.id} />
+            </Suspense>
           </Section>
         </div>
 
@@ -199,32 +230,35 @@ const ProfilePage = async ({ params }: PageProps<"/p/[slug]">) => {
                 <Languages className="size-4 text-primary" />
                 {pro.languages.join(", ")}
               </li>
-              <li className="flex items-center gap-2">
-                <MapPin className="size-4 text-primary" />
-                {pro.neighborhood}, {pro.city}
-              </li>
+              {place && (
+                <li className="flex items-center gap-2">
+                  <MapPin className="size-4 text-primary" />
+                  {place}
+                </li>
+              )}
             </ul>
-            <div className="mt-4 flex h-36 items-center justify-center rounded-xl bg-[repeating-linear-gradient(45deg,var(--muted),var(--muted)_10px,var(--background)_10px,var(--background)_20px)] text-sm text-muted-foreground">
-              Mapa do local
-            </div>
           </Section>
 
           <div id="contato">
             <Section title="Enviar solicitação">
-              <ContactForm name={pro.name.split(" ")[0]} />
+              <ContactForm name={pro.name.split(" ")[0]} slug={pro.slug} />
             </Section>
           </div>
 
           <p className="text-xs text-muted-foreground">
             O Fulltime aproxima famílias e profissionais. Confirme valores e condições diretamente antes de contratar.
           </p>
-          <button className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive">
-            <Flag className="size-3.5" /> Denunciar perfil
-          </button>
+          <ReportForm slug={pro.slug} />
         </aside>
       </div>
     </div>
   );
 };
+
+const ProfilePage = ({ params }: PageProps<"/p/[slug]">) => (
+  <Suspense fallback={<div className="mx-auto max-w-6xl px-4 py-8 text-sm text-muted-foreground">Carregando perfil…</div>}>
+    <Profile params={params} />
+  </Suspense>
+);
 
 export default ProfilePage;

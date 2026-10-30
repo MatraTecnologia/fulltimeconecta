@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Check } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { plans } from "@/lib/mock/catalog";
+import { plans } from "@/lib/catalog";
 
 export const metadata: Metadata = { title: "Planos · Fulltime" };
 

@@ -1,31 +1,34 @@
-import { PanelCard, PanelHeader } from "@/components/panel/panel-ui";
+import { PanelCard, PanelHeader, Stat } from "@/components/panel/panel-ui";
+import { requireProfessional } from "@/lib/server/dal";
+import { weekly } from "@/lib/server/stats";
 import { StatsChart } from "./stats-chart";
-import { searchTerms } from "@/lib/mock/panel";
 
-const max = Math.max(...searchTerms.map((t) => t.count));
+const EstatisticasPage = async () => {
+  const { professional: pro } = await requireProfessional();
+  const data = await weekly(pro.id);
+  const total = (k: "views" | "clicks" | "leads") => data.reduce((a, w) => a + w[k], 0);
+  const views = total("views");
+  const contacts = total("clicks") + total("leads");
+  const first = data[0].views;
+  const last = data[data.length - 1].views;
 
-const EstatisticasPage = () => (
-  <>
-    <PanelHeader title="Estatísticas" description="Últimas 8 semanas" />
-    <div className="space-y-6">
-      <PanelCard title="Visitas, cliques e solicitações por semana" description="As visitas mais que dobraram em 8 semanas, de 142 para 341">
-        <StatsChart />
+  return (
+    <>
+      <PanelHeader title="Estatísticas" description="Últimas 8 semanas" />
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Stat label="Visitas ao perfil" value={views.toLocaleString("pt-BR")} />
+        <Stat label="Contatos (WhatsApp + formulário)" value={contacts.toLocaleString("pt-BR")} />
+        <Stat label="Taxa de contato" value={views ? `${((contacts / views) * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%` : "—"} />
+      </div>
+      <PanelCard
+        className="mt-6"
+        title="Visitas, cliques e solicitações por semana"
+        description={views ? `Visitas na primeira semana: ${first} · na última: ${last}` : "Os números aparecem assim que seu perfil começar a receber visitas."}
+      >
+        <StatsChart data={data} />
       </PanelCard>
-      <PanelCard title="Buscas que trouxeram famílias até você">
-        <ul className="space-y-3">
-          {searchTerms.map((t) => (
-            <li key={t.term} className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1 text-sm">
-              <span>{t.term}</span>
-              <span className="font-semibold tabular-nums">{t.count}</span>
-              <div className="col-span-2 h-2 rounded-full bg-muted">
-                <div className="h-2 rounded-full bg-primary" style={{ width: `${(t.count / max) * 100}%` }} />
-              </div>
-            </li>
-          ))}
-        </ul>
-      </PanelCard>
-    </div>
-  </>
-);
+    </>
+  );
+};
 
 export default EstatisticasPage;

@@ -1,93 +1,116 @@
 import type { Metadata } from "next";
-import { Logo } from "@/components/brand/logo";
-import { PanelCard, PanelHeader, Stat } from "@/components/panel/panel-ui";
-import { PrototypeBanner } from "@/components/site/prototype-banner";
+import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ModerationActions } from "./moderation-actions";
-import { reports, verificationQueue } from "@/lib/mock/panel";
+import { ActionButton } from "@/components/panel/action-button";
+import { PanelCard, PanelHeader, Stat } from "@/components/panel/panel-ui";
+import { formatDate, verificationLabel } from "@/lib/labels";
+import { db } from "@/lib/server/db";
+import { requireAdmin } from "@/lib/server/dal";
+import { hideReported, resolveReport } from "./actions";
 
 export const metadata: Metadata = { title: "Moderação · Fulltime" };
 
-const AdminPage = () => (
-  <>
-    <PrototypeBanner />
-    <header className="border-b bg-card">
-      <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4">
-        <Logo href="/admin" />
-        <span className="rounded-full bg-foreground px-2 py-0.5 text-xs font-semibold text-background">Moderação</span>
-      </div>
-    </header>
-    <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8">
+const AdminPage = async () => {
+  await requireAdmin();
+  const [queue, reports, published] = await Promise.all([
+    db.professional.findMany({
+      where: { status: { in: ["ENVIADO", "EM_ANALISE", "CORRECAO"] } },
+      orderBy: { submittedAt: "asc" },
+      include: { _count: { select: { documents: true } } },
+    }),
+    db.report.findMany({ where: { status: "ABERTA" }, orderBy: { createdAt: "desc" }, include: { professional: { select: { name: true } }, review: { select: { text: true } } } }),
+    db.professional.count({ where: { status: "VERIFICADO" } }),
+  ]);
+  const pending = queue.filter((q) => q.status !== "CORRECAO");
+
+  return (
+    <>
       <PanelHeader title="Painel de moderação" description="Verificações e denúncias pendentes" />
-      <div className="grid gap-4 sm:grid-cols-4">
-        <Stat label="Verificações na fila" value={String(verificationQueue.length)} />
-        <Stat label="Tempo médio de análise" value="1,4 dia" />
-        <Stat label="Denúncias abertas" value={String(reports.filter((r) => r.status === "aberta").length)} />
-        <Stat label="Perfis publicados" value="1.284" />
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Stat label="Verificações na fila" value={String(pending.length)} />
+        <Stat label="Denúncias abertas" value={String(reports.length)} />
+        <Stat label="Perfis publicados" value={published.toLocaleString("pt-BR")} />
       </div>
 
       <PanelCard title="Fila de verificação" description="SLA de 2 dias úteis. Conferir registro na consulta pública do conselho." className="mt-6">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Profissional</TableHead>
-              <TableHead>Registro</TableHead>
-              <TableHead>Enviado</TableHead>
-              <TableHead>Docs</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Ação</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {verificationQueue.map((v) => (
-              <TableRow key={v.id}>
-                <TableCell>
-                  <p className="font-medium">{v.name}</p>
-                  <p className="text-xs text-muted-foreground">{v.specialty}</p>
-                </TableCell>
-                <TableCell>{v.council}</TableCell>
-                <TableCell>{new Date(v.sent).toLocaleDateString("pt-BR")}</TableCell>
-                <TableCell>{v.docs}</TableCell>
-                <TableCell className="capitalize">{v.status}</TableCell>
-                <TableCell className="text-right">
-                  <ModerationActions approve="Aprovar" reject="Reprovar" />
-                </TableCell>
+        {!queue.length ? (
+          <p className="text-sm text-muted-foreground">Nenhum perfil aguardando análise.</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Profissional</TableHead>
+                <TableHead>Registro</TableHead>
+                <TableHead>Enviado</TableHead>
+                <TableHead>Docs</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Ação</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {queue.map((v) => (
+                <TableRow key={v.id}>
+                  <TableCell>
+                    <p className="font-medium">{v.name}</p>
+                    <p className="text-xs text-muted-foreground">{v.specialty}</p>
+                  </TableCell>
+                  <TableCell>{v.councilName ? `${v.councilName} ${v.councilNumber}/${v.councilUf}` : "Sem conselho"}</TableCell>
+                  <TableCell>{v.submittedAt ? formatDate(v.submittedAt) : "—"}</TableCell>
+                  <TableCell>{v._count.documents}</TableCell>
+                  <TableCell>{verificationLabel[v.status]}</TableCell>
+                  <TableCell className="text-right">
+                    <Link href={`/admin/verificacao/${v.id}`} className={buttonVariants({ size: "sm" })}>
+                      Analisar
+                    </Link>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </PanelCard>
 
-      <PanelCard title="Denúncias" description="3 denúncias em 30 dias ou suspeita de registro falso ocultam o perfil preventivamente" className="mt-6">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Alvo</TableHead>
-              <TableHead>Motivo</TableHead>
-              <TableHead>Qtd.</TableHead>
-              <TableHead>Data</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Ação</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {reports.map((r) => (
-              <TableRow key={r.id}>
-                <TableCell className="font-medium">{r.target}</TableCell>
-                <TableCell>{r.reason}</TableCell>
-                <TableCell>{r.count}</TableCell>
-                <TableCell>{new Date(r.date).toLocaleDateString("pt-BR")}</TableCell>
-                <TableCell className="capitalize">{r.status}</TableCell>
-                <TableCell className="text-right">
-                  <ModerationActions approve="Arquivar" reject="Suspender" />
-                </TableCell>
+      <PanelCard title="Denúncias" description="3 denúncias de perfil em 30 dias ocultam o perfil preventivamente" className="mt-6">
+        {!reports.length ? (
+          <p className="text-sm text-muted-foreground">Nenhuma denúncia aberta.</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Alvo</TableHead>
+                <TableHead>Motivo</TableHead>
+                <TableHead>Data</TableHead>
+                <TableHead className="text-right">Ação</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {reports.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell className="max-w-80">
+                    <p className="font-medium">{r.review ? `Avaliação em ${r.professional.name}` : `Perfil · ${r.professional.name}`}</p>
+                    {(r.review?.text || r.details) && <p className="truncate text-xs text-muted-foreground">{r.review?.text ?? r.details}</p>}
+                  </TableCell>
+                  <TableCell>{r.reason}</TableCell>
+                  <TableCell>{formatDate(r.createdAt)}</TableCell>
+                  <TableCell>
+                    <div className="flex justify-end gap-2">
+                      <ActionButton action={resolveReport.bind(null, r.id)} size="sm" variant="outline">
+                        Arquivar
+                      </ActionButton>
+                      <ActionButton action={hideReported.bind(null, r.id)} size="sm" variant="destructive">
+                        Ocultar
+                      </ActionButton>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </PanelCard>
-    </main>
-  </>
-);
+    </>
+  );
+};
 
 export default AdminPage;

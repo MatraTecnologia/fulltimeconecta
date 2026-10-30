@@ -1,0 +1,323 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Plan {
+  GRATUITO
+  PREMIUM
+  DESTAQUE
+}
+
+enum Vacancy {
+  ABERTA
+  ESPERA
+  FECHADA
+}
+
+enum VerificationStatus {
+  RASCUNHO
+  ENVIADO
+  EM_ANALISE
+  CORRECAO
+  VERIFICADO
+  REJEITADO
+}
+
+enum VideoKind {
+  YOUTUBE
+  UPLOAD
+}
+
+enum LeadChannel {
+  FORMULARIO
+  WHATSAPP
+}
+
+enum LeadStatus {
+  NOVO
+  RESPONDIDO
+  CONVERTIDO
+  DESCARTADO
+}
+
+enum EventType {
+  VIEW
+  WHATSAPP
+  LEAD
+}
+
+enum ReportStatus {
+  ABERTA
+  OCULTO
+  RESOLVIDA
+}
+
+model User {
+  id            String        @id @default(cuid())
+  name          String
+  email         String        @unique
+  emailVerified Boolean       @default(false)
+  image         String?
+  role          String        @default("familia")
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+  professional  Professional?
+  reviews       Review[]
+  leads         Lead[]
+  reports       Report[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  userId                String
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("accounts")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("verifications")
+}
+
+model Professional {
+  id              String             @id @default(cuid())
+  userId          String             @unique
+  slug            String             @unique
+  slugChangedAt   DateTime?
+  name            String
+  specialty       String
+  councilName     String?
+  councilNumber   String?
+  councilUf       String?
+  city            String             @default("")
+  neighborhood    String             @default("")
+  address         String?
+  bio             String             @default("") @db.Text
+  years           Int                @default(0)
+  gender          String?
+  conditions      String[]
+  ageRanges       String[]
+  approaches      String[]
+  modalities      String[]
+  healthPlans     String[]
+  languages       String[]           @default(["Português"])
+  price           Int?
+  vacancy         Vacancy            @default(ABERTA)
+  plan            Plan               @default(GRATUITO)
+  planUntil       DateTime?
+  status          VerificationStatus @default(RASCUNHO)
+  statusNote      String?
+  submittedAt     DateTime?
+  responseHours   Int                @default(24)
+  whatsapp        String             @default("")
+  whatsappMessage String?
+  accent          String             @default("sky")
+  avatarUrl       String?
+  instagram       String?
+  youtube         String?
+  tiktok          String?
+  linkedin        String?
+  site            String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  education       Education[]
+  portfolio       PortfolioItem[]
+  photos          Photo[]
+  videos          Video[]
+  documents       Document[]
+  leads           Lead[]
+  reviews         Review[]
+  events          Event[]
+  reports         Report[]
+  orders          Order[]
+
+  @@index([status, plan])
+  @@map("professionals")
+}
+
+model Education {
+  id             String       @id @default(cuid())
+  professionalId String
+  title          String
+  institution    String
+  year           Int
+  verified       Boolean      @default(false)
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+
+  @@map("education")
+}
+
+model PortfolioItem {
+  id             String       @id @default(cuid())
+  professionalId String
+  type           String
+  title          String
+  detail         String
+  createdAt      DateTime     @default(now())
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+
+  @@map("portfolio_items")
+}
+
+model Photo {
+  id             String       @id @default(cuid())
+  professionalId String
+  key            String
+  url            String
+  caption        String       @default("")
+  position       Int          @default(0)
+  createdAt      DateTime     @default(now())
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+
+  @@map("photos")
+}
+
+model Video {
+  id             String       @id @default(cuid())
+  professionalId String
+  kind           VideoKind
+  title          String
+  url            String
+  key            String?
+  duration       String?
+  position       Int          @default(0)
+  createdAt      DateTime     @default(now())
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+
+  @@map("videos")
+}
+
+model Document {
+  id             String       @id @default(cuid())
+  professionalId String
+  kind           String
+  key            String
+  fileName       String
+  createdAt      DateTime     @default(now())
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+
+  @@map("documents")
+}
+
+model Lead {
+  id             String       @id @default(cuid())
+  professionalId String
+  familyId       String?
+  guardian       String
+  contact        String       @default("")
+  personAge      String       @default("")
+  condition      String?
+  modality       String?
+  message        String       @default("")
+  channel        LeadChannel
+  status         LeadStatus   @default(NOVO)
+  createdAt      DateTime     @default(now())
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  family         User?        @relation(fields: [familyId], references: [id], onDelete: SetNull)
+
+  @@index([professionalId, createdAt])
+  @@map("leads")
+}
+
+model Review {
+  id             String       @id @default(cuid())
+  professionalId String
+  authorId       String
+  rating         Int
+  acolhimento    Int
+  comunicacao    Int
+  pontualidade   Int
+  text           String       @db.Text
+  reply          String?      @db.Text
+  hidden         Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  author         User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  reports        Report[]
+
+  @@unique([professionalId, authorId])
+  @@map("reviews")
+}
+
+model Event {
+  id             String       @id @default(cuid())
+  professionalId String
+  type           EventType
+  createdAt      DateTime     @default(now())
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+
+  @@index([professionalId, createdAt])
+  @@map("events")
+}
+
+model Report {
+  id             String       @id @default(cuid())
+  professionalId String
+  reviewId       String?
+  reporterId     String?
+  reason         String
+  details        String       @default("")
+  status         ReportStatus @default(ABERTA)
+  createdAt      DateTime     @default(now())
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  review         Review?      @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  reporter       User?        @relation(fields: [reporterId], references: [id], onDelete: SetNull)
+
+  @@index([professionalId, reporterId])
+  @@map("reports")
+}
+
+model Order {
+  id             String       @id @default(cuid())
+  professionalId String
+  item           String
+  amount         Int
+  method         String
+  status         String
+  createdAt      DateTime     @default(now())
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+
+  @@map("orders")
+}

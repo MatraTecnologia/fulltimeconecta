@@ -7,12 +7,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Switch } from "@/components/ui/switch";
 import { ProfessionalCard } from "@/components/professional/professional-card";
-import { ageRanges, approaches, cities, conditions, healthPlans, modalities, specialties } from "@/lib/mock/catalog";
-import { professionals, type Plan } from "@/lib/mock/professionals";
+import { ageRanges, approaches, cities, conditions, healthPlans, modalities, specialties } from "@/lib/catalog";
+import type { Professional } from "@/lib/types";
 
-type Sort = "relevancia" | "distancia" | "nota";
-
-const planWeight: Record<Plan, number> = { destaque: 0, premium: 1, gratuito: 2 };
+type Sort = "relevancia" | "nota";
 
 const CheckGroup = ({ title, options, value, onChange }: { title: string; options: readonly string[]; value: string[]; onChange: (v: string[]) => void }) => (
   <fieldset className="space-y-2">
@@ -26,7 +24,7 @@ const CheckGroup = ({ title, options, value, onChange }: { title: string; option
   </fieldset>
 );
 
-export const SearchClient = ({ initial }: { initial: { specialty: string; condition: string; city: string } }) => {
+export const SearchClient = ({ professionals, initial }: { professionals: Professional[]; initial: { specialty: string; condition: string; city: string } }) => {
   const [specialty, setSpecialty] = useState(initial.specialty);
   const [condition, setCondition] = useState(initial.condition);
   const [city, setCity] = useState(initial.city);
@@ -51,11 +49,9 @@ export const SearchClient = ({ initial }: { initial: { specialty: string; condit
         hasAny(p.healthPlans, plansSel) &&
         (!onlyOpen || p.vacancy === "aberta"),
     );
-    const byDistance = (a: (typeof list)[number], b: (typeof list)[number]) => a.distanceKm - b.distanceKm;
-    if (sort === "distancia") return list.sort(byDistance);
     if (sort === "nota") return list.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
-    return list.sort((a, b) => planWeight[a.plan] - planWeight[b.plan] || byDistance(a, b));
-  }, [specialty, condition, city, ages, apps, mods, plansSel, onlyOpen, sort]);
+    return list;
+  }, [professionals, specialty, condition, city, ages, apps, mods, plansSel, onlyOpen, sort]);
 
   const clear = () => {
     setSpecialty("");
@@ -118,7 +114,6 @@ export const SearchClient = ({ initial }: { initial: { specialty: string; condit
               </Button>
               <NativeSelect value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Ordenar">
                 <NativeSelectOption value="relevancia">Relevância</NativeSelectOption>
-                <NativeSelectOption value="distancia">Mais perto</NativeSelectOption>
                 <NativeSelectOption value="nota">Melhor avaliados</NativeSelectOption>
               </NativeSelect>
             </div>

@@ -2,11 +2,11 @@ import Link from "next/link";
 import { MapPin, MessageCircle, PlayCircle, Star } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { Professional } from "@/lib/mock/professionals";
+import type { Professional } from "@/lib/types";
 import { Chip, PlanBadge, ProAvatar, VacancyBadge, VerifiedBadge } from "./pro-badges";
 
-export const whatsappUrl = (pro: Professional) =>
-  `https://wa.me/${pro.whatsapp}?text=${encodeURIComponent(`Olá, ${pro.name.split(" ")[0]}! Vi seu perfil no Fulltime e gostaria de mais informações.`)}`;
+export const whatsappUrl = (pro: Pick<Professional, "whatsapp" | "whatsappMessage" | "name">) =>
+  `https://wa.me/${pro.whatsapp}?text=${encodeURIComponent(pro.whatsappMessage || `Olá, ${pro.name.split(" ")[0]}! Vi seu perfil no Fulltime e gostaria de mais informações.`)}`;
 
 export const ProfessionalCard = ({ pro }: { pro: Professional }) => (
   <article
@@ -30,7 +30,7 @@ export const ProfessionalCard = ({ pro }: { pro: Professional }) => (
       <VerifiedBadge pro={pro} />
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
         <span className="inline-flex items-center gap-1">
-          <MapPin className="size-4" /> {pro.neighborhood}, {pro.city} · {pro.distanceKm < 50 ? `${pro.distanceKm} km` : "outra cidade"}
+          <MapPin className="size-4" /> {[pro.neighborhood, pro.city].filter(Boolean).join(", ")}
         </span>
         {pro.rating && pro.reviewsCount >= 3 && (
           <span className="inline-flex items-center gap-1">

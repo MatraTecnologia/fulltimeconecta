@@ -1,46 +1,37 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { buttonVariants } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { AuthShell } from "@/components/site/auth-shell";
+import { SignInForm } from "./signin-form";
 
 export const metadata: Metadata = { title: "Entrar · Fulltime" };
 
-const EntrarPage = () => (
+const Form = async ({ searchParams }: { searchParams: PageProps<"/entrar">["searchParams"] }) => {
+  const { next } = await searchParams;
+  return <SignInForm next={typeof next === "string" ? next : undefined} />;
+};
+
+const EntrarPage = ({ searchParams }: PageProps<"/entrar">) => (
   <AuthShell
+    eyebrow="Profissionais e famílias"
     title="Entre na sua conta"
-    subtitle="Acesse o painel do seu perfil"
+    subtitle="Profissionais acessam o painel; famílias podem avaliar quem já contataram"
     footer={
       <>
         Ainda não tem conta?{" "}
         <Link href="/cadastro" className="font-semibold text-primary hover:underline">
-          Cadastre-se grátis
+          Sou profissional
+        </Link>{" "}
+        ·{" "}
+        <Link href="/cadastro/familia" className="font-semibold text-primary hover:underline">
+          Sou família
         </Link>
       </>
     }
   >
-    <div className="space-y-4">
-      <div className="space-y-1.5">
-        <Label htmlFor="email">E-mail</Label>
-        <Input id="email" type="email" defaultValue="ana.paula@exemplo.com" />
-      </div>
-      <div className="space-y-1.5">
-        <div className="flex justify-between">
-          <Label htmlFor="pwd">Senha</Label>
-          <Link href="#" className="text-sm text-primary hover:underline">
-            Esqueci minha senha
-          </Link>
-        </div>
-        <Input id="pwd" type="password" defaultValue="12345678" />
-      </div>
-      <Link href="/painel" className={buttonVariants({ size: "lg", className: "w-full" })}>
-        Entrar
-      </Link>
-      <Link href="/admin" className={buttonVariants({ variant: "ghost", size: "sm", className: "w-full text-muted-foreground" })}>
-        Entrar como moderador (demo)
-      </Link>
-    </div>
+    <Suspense>
+      <Form searchParams={searchParams} />
+    </Suspense>
   </AuthShell>
 );
 

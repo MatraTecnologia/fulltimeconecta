@@ -1,10 +1,25 @@
+import { Suspense } from "react";
+import { connection } from "next/server";
 import Link from "next/link";
 import { BadgeCheck, Bot, MessageCircle, Search, ShieldCheck, Users } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { ProfessionalCard } from "@/components/professional/professional-card";
 import { HeroSearch } from "@/components/site/hero-search";
-import { conditions, specialties } from "@/lib/mock/catalog";
-import { professionals } from "@/lib/mock/professionals";
+import { conditions, specialties } from "@/lib/catalog";
+import { listVerified } from "@/lib/server/professionals";
+
+const Featured = async () => {
+  await connection();
+  const featured = (await listVerified()).slice(0, 3);
+  if (!featured.length) return <p className="mt-4 text-muted-foreground">Os primeiros profissionais verificados aparecem aqui em breve.</p>;
+  return (
+    <div className="mt-4 grid gap-4">
+      {featured.map((p) => (
+        <ProfessionalCard key={p.slug} pro={p} />
+      ))}
+    </div>
+  );
+};
 
 const conditionColors = [
   "bg-brand-coral/15 hover:bg-brand-coral/25",
@@ -96,14 +111,9 @@ const HomePage = () => (
           Ver todos
         </Link>
       </div>
-      <div className="mt-4 grid gap-4">
-        {professionals
-          .filter((p) => p.plan !== "gratuito")
-          .slice(0, 3)
-          .map((p) => (
-            <ProfessionalCard key={p.slug} pro={p} />
-          ))}
-      </div>
+      <Suspense fallback={<div className="mt-4 h-48 rounded-2xl bg-muted" />}>
+        <Featured />
+      </Suspense>
     </section>
 
     <section className="mx-auto mt-20 grid max-w-6xl gap-6 px-4 md:grid-cols-3">

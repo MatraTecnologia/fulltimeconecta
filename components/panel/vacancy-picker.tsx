@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import type { Vacancy } from "@/lib/mock/professionals";
+import type { Vacancy } from "@/lib/types";
 
 const options: { id: Vacancy; label: string; hint: string }[] = [
   { id: "aberta", label: "Vagas abertas", hint: "Aparece no filtro “só com vaga”" },
@@ -14,6 +14,7 @@ export const VacancyPicker = ({ initial }: { initial: Vacancy }) => {
   const [v, setV] = useState(initial);
   return (
     <div className="grid gap-3 sm:grid-cols-3" role="radiogroup">
+      <input type="hidden" name="vacancy" value={v} />
       {options.map((o) => (
         <button
           key={o.id}

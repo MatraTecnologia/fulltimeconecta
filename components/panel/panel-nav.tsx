@@ -11,14 +11,14 @@ const items = [
   { href: "/painel/atendimento", label: "Atendimento", icon: Stethoscope },
   { href: "/painel/verificacao", label: "Verificação", icon: BadgeCheck },
   { href: "/painel/portfolio", label: "Portfólio", icon: Images },
-  { href: "/painel/leads", label: "Contatos", icon: Inbox, badge: 2 },
+  { href: "/painel/leads", label: "Contatos", icon: Inbox, badge: true },
   { href: "/painel/avaliacoes", label: "Avaliações", icon: Star },
   { href: "/painel/estatisticas", label: "Estatísticas", icon: BarChart3 },
   { href: "/painel/plano", label: "Plano", icon: CreditCard },
   { href: "/painel/conta", label: "Conta", icon: Settings },
 ];
 
-export const PanelNav = () => {
+export const PanelNav = ({ newLeads = 0 }: { newLeads?: number }) => {
   const path = usePathname();
   return (
     <nav className="flex gap-1 overflow-x-auto md:flex-col">
@@ -35,9 +35,9 @@ export const PanelNav = () => {
           >
             <i.icon className="size-4" />
             {i.label}
-            {i.badge && (
+            {i.badge && newLeads > 0 && (
               <span className={cn("ml-auto rounded-full px-1.5 text-xs", active ? "bg-primary-foreground/20" : "bg-brand-coral text-white")}>
-                {i.badge}
+                {newLeads}
               </span>
             )}
           </Link>

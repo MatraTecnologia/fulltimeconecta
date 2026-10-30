@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
-import { cities, conditions, specialties } from "@/lib/mock/catalog";
+import { cities, conditions, specialties } from "@/lib/catalog";
 
 export const HeroSearch = () => {
   const router = useRouter();
